@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ポケモン漢字クイズ</title>
+  <style>
+    :root {
+      --bg1:#fff8e1; --bg2:#e8f1ff; --card:#fff; --text:#22324c; --sub:#60708a;
+      --blue:#2a75bb; --yellow:#ffcb05; --good:#1f9d55; --bad:#d64545; --line:#d9e5f3;
+      --shadow:0 14px 32px rgba(28,56,101,.12); --radius:18px;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:"Hiragino Sans","Yu Gothic UI","Meiryo",system-ui,sans-serif;color:var(--text);background:linear-gradient(135deg,var(--bg1),var(--bg2));min-height:100vh}
+    .wrap{max-width:980px;margin:0 auto;padding:20px 16px 56px}
+    .hero{background:linear-gradient(135deg,#ffe27a,#ffd166 40%,#87c8ff);border-radius:24px;padding:24px;box-shadow:var(--shadow);margin-bottom:18px}
+    h1{margin:0 0 8px;font-size:clamp(28px,4vw,42px)}
+    .sub{margin:0;color:#24344d;line-height:1.8}
+    .grid{display:grid;grid-template-columns:1.35fr .85fr;gap:18px}
+    @media (max-width:860px){.grid{grid-template-columns:1fr}}
+    .card{background:var(--card);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow)}
+    .meta{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px}
+    .pill{display:inline-flex;align-items:center;background:#eef6ff;border:1px solid #d9e9fa;color:#26527b;padding:8px 12px;border-radius:999px;font-size:13px;font-weight:700}
+    .question{background:#fffdf7;border:1px solid #f5e5a7;border-radius:16px;padding:18px;margin-bottom:14px}
+    .label{font-size:13px;color:var(--sub);margin-bottom:6px;font-weight:700;letter-spacing:.02em}
+    .hint{font-size:22px;line-height:1.8}
+    .target{font-size:36px;font-weight:800;letter-spacing:.08em;color:#163b64;background:#edf5ff;border:1px solid #d7e6fa;border-radius:14px;padding:16px;text-align:center;margin-bottom:14px}
+    .prompt{font-size:18px;line-height:1.7;margin:0 0 14px}
+    .answer-box{display:flex;gap:10px;flex-wrap:wrap}
+    input[type=text]{flex:1 1 260px;padding:14px 16px;border-radius:12px;border:1px solid #c7d6ea;font-size:18px}
+    button{appearance:none;border:0;border-radius:12px;padding:13px 16px;font-size:15px;font-weight:800;cursor:pointer}
+    .primary{background:var(--blue);color:#fff}
+    .secondary{background:#eef5fb;color:#21456a}
+    .warn{background:#fff2bf;color:#6d5600}
+    .result{min-height:56px;margin-top:14px;padding:14px 16px;border-radius:14px;background:#f8fafc;border:1px solid #e7eef5;line-height:1.8}
+    .result.good{background:#edf9f1;border-color:#bfe5cb;color:#175d37}
+    .result.bad{background:#fff0f0;border-color:#f1c4c4;color:#8e2929}
+    .stats{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+    .stat{background:#f7fbff;border:1px solid var(--line);border-radius:14px;padding:14px}
+    .stat .k{font-size:13px;color:var(--sub);margin-bottom:5px}
+    .stat .v{font-size:24px;font-weight:800}
+    .small{color:var(--sub);font-size:13px;line-height:1.8}
+    .source a{color:var(--blue);text-decoration:none;word-break:break-all}
+    .inline-answer{margin-top:10px;font-size:15px;color:#314a6b}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="hero">
+      <h1>ポケモン漢字クイズ</h1>
+      <p class="sub">前回のHTMLは「ポケモン名当て」になっていました。これは修正版で、<strong>ヒント文に出てくる漢字語の読み</strong>を答える本来の漢字クイズです。</p>
+    </section>
+
+    <div class="grid">
+      <section class="card">
+        <div class="meta">
+          <span class="pill" id="noPill">No. -</span>
+          <span class="pill" id="levelPill">難易度: -</span>
+          <span class="pill" id="namePill">ポケモン名: -</span>
+        </div>
+
+        <div class="question">
+          <div class="label">ヒント文</div>
+          <div class="hint" id="hint">読み込み中...</div>
+        </div>
+
+        <div class="label">この漢字の読みをひらがなで答えてください</div>
+        <div class="target" id="targetKanji">-</div>
+        <p class="prompt">例: 「栄養」→「えいよう」</p>
+
+        <div class="answer-box">
+          <input id="answerInput" type="text" placeholder="ひらがなで入力" autocomplete="off" />
+          <button class="primary" id="checkBtn">答え合わせ</button>
+          <button class="secondary" id="nextBtn">次の問題</button>
+          <button class="warn" id="showBtn">答えを見る</button>
+        </div>
+
+        <div id="result" class="result">ここに結果が表示されます。</div>
+        <div class="inline-answer" id="answerInfo"></div>
+        <p class="small source">出典: <a id="sourceLink" href="#" target="_blank" rel="noopener noreferrer">species API</a></p>
+      </section>
+
+      <aside class="card">
+        <h2 style="margin-top:0">進行状況</h2>
+        <div class="stats">
+          <div class="stat"><div class="k">出題数</div><div class="v" id="askedCount">0</div></div>
+          <div class="stat"><div class="k">正解数</div><div class="v" id="correctCount">0</div></div>
+          <div class="stat"><div class="k">正答率</div><div class="v" id="rate">0%</div></div>
+          <div class="stat"><div class="k">残り</div><div class="v" id="remaining">100</div></div>
+        </div>
+
+        <h3>このアプリの内容</h3>
+        <p class="small">CSVの各行から「ターゲット漢字」を1つ選び、その読みを答える形式です。ヒント文、ポケモン名、難易度もあわせて見られます。</p>
+
+        <h3>使い方</h3>
+        <p class="small">1. ヒント文を読む → 2. 大きく表示された漢字語の読みをひらがなで入力 → 3. 答え合わせ。</p>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    const quizData = [{"no": 1, "name": "フシギダネ", "hint": "生まれて しばらくの あいだ 背中の タネに つまった 栄養を とって 育つ。", "target": "背中", "reading": "せなか", "level": "中級", "source": "https://pokeapi.co/api/v2/pokemon-species/1/"}, {"no": 2, "name": "フシギソウ", "hint": "太陽の 光を 浴びるほど 体に 力が わいて 背中の つぼみが 育っていく。", "target": "太陽", "reading": "たいよう", "level": "中級〜上級", "source": "https://pokeapi.co/api/v2/pokemon-species/2/"}, {"no": 3, "name": "フシギバナ", "hint": "花から うっとりする 香りが ただよい 戦うものの 気持ちを なだめてしまう。", "target": "花", "reading": "はな", "level": "初級〜中級", "source": "https://pokeapi.co/api/v2/pokemon-species/3/"}, {"no": 4, "name": "ヒトカゲ", "hint": "生まれたときから しっぽに 炎が ともっている。 炎が 消えたとき その 命は 終わって しまう。", "target": "炎", "reading": "ほのお", "level": "中級", "source": "https://pokeapi.co/api/v2/pokemon-species/4/"}, {"no": 5, "name": "リザード", "hint": "戦いで 気持ちが たかぶると 灼熱の 炎を 吹きながら あたりを 燃やしてまわる。", "target": "気持", "reading": "きもち", "level": "中級", "source": "https://pokeapi.co/api/v2/pokemon-species/5/"}, {"no": 6, "name": "リザードン", "hint": "地上 １４００メートル まで 羽を 使って 飛ぶことができる。 高熱の 炎を 吐く。", "target": "地上", "reading": "ちじょう", "level": "中級〜上級", "source": "https://pokeapi.co/api/v2/pokemon-species/6/"}, {"no": 7, "name": "ゼニガメ", "hint": "危なくなると 甲羅に 手足を 引っこめて 身を 守りながら 口から 水を 吹き出している。", "target": "甲羅", "reading": "こうら", "level": "中級〜上級", "source": "https://pokeapi.co/api/v2/pokemon-species/7/"}, {"no": 8, "name": "カメール", "hint": "ふさふさの 耳と しっぽを たくみに 操って 水中での バランスを たもつ。", "target": "水中", "reading": "すいちゅう", "level": "初級〜中級", "source": "https://pokeapi.co/api/v2/pokemon-species/8/"}, {"no": 9, "name": "カメックス", "hint": "甲羅の ロケット砲 から 噴き出した ジェット水流は ぶ厚い 鉄板も つらぬく。", "target": "甲羅", "reading": "こうら", "level": "中級〜上級", "source": "https://pokeapi.co/api/v2/pokemon-species/9/"}, {"no": 10, "name": "キャタピー", "hint": "脚は 短いが 吸盤に なっているので 坂でも 壁でも くたびれることなく 進んでいく。", "target": "吸盤", "reading": "きゅうばん", "level": "中級", "source": "https://pokeapi.co/api/v2/pokemon-species/10/"}, {"no": 11, "name": "トランセル", "hint": "硬い 殻に 包まれているが 中身は 軟らかいので 強い 攻撃には 耐えられない。", "target": "硬", "reading": "こう", "level": "中級〜上級", "source": "https://pokeapi.co/api/v2/pokemon-species/11/"}, {"no": 12, "name": "バタフリー", "hint": "毎日 ミツを 集めまわる。 脚の 産毛に ミツを 塗りこんで 巣に 持ち帰る 習性をもつ。", "target": "毎日", "reading": "まいにち", "level": "中級〜上級", "source": "https://pokeapi.co/api/v2/pokemon-species/12/"}, {"no": 13, "name": "ビードル", "hint": "頭に 鋭い ハリを もつ。 森や 草地の 茂みに 隠れ ひたすら ハッパを 食べている。", "target": "頭", "reading": "あたま", "level": "中級", "source": "https://pokeapi.co/api/v2/pokemon-species/13/"}, {"no": 14, "name": "コクーン", "hint": "自分では ほとんど 動けないが 危なくなると ハリを出して 毒を 与えることも あるらしい。", "target": "自分", "reading": "じぶん", "level": "中級", "source": "https://pokeapi.co/api/v2/pokemon-species/14/"}, {"no": 15, "name": "スピアー", "hint": "両手と お尻にある ３本の 毒バリで 相手を 刺して 刺して 刺しまくって 攻撃する。", "target": "両手", "reading": "りょうて", "level": "中級〜上級", "source": "https://pokeapi.co/api/v2/pokemon-species/15/"}, {"no": 16, "name": "ポッポ", "hint": "おとなしい 性格で 襲われても 反撃 せずに 砂を かけて 身を 守ることが 多い。", "target": "性格", "reading": "せいかく", "level": "中級〜上級", "source": "https://pokeapi.co/api/v2/pokemon-species/16/"}, {"no": 17, "name": "ピジョン", "hint": "あり余る 体力の 持ち主で 広い 縄張りを 飛びまわり 遠くまで エサを 探しにいく。", "target": "体力", "reading": "たいりょく", "level": "中級〜上級", "source": "https://pokeapi.co/api/v2/pokemon-species/17/"}, {"no": 18, "name": "ピジョット", "hint": "マッハ２で 飛行し エサを探す。 その 大きな ツメは 武器と しても 恐れられている。", "target": "飛行", "reading": "ひこう", "level": "中級", "source": "https://pokeapi.co/api/v2/pokemon-species/18/"}, {"no": 19, "name": "コラッタ", "hint": "キバが２つ。とにかく なんでも かじってみる。１匹 見つけたら ４０匹は そこに 住んでるはず。", "target": "匹", "reading": "ひき", "level": "初級〜中級", "source": "https://pokeapi.co/api/v2/pokemon-species/19/"}, {"no": 20, "name": "ラッタ", "hint": "後ろ足にある 小さな 水かきで 川を 泳ぐのは 水の中の エサを 捕るためだ。", "target": "後", "reading": "のち", "level": "中級〜上級", "source": "https://pokeapi.co/api/v2/pokemon-species/20/"}, {"no": 21, "name": "オニスズメ", "hint": "高く 飛ぶのは 苦手。 縄張りを 守るために 猛スピードで 飛びまわっている。", "target": "苦手", "reading": "にがて", "level": "中級〜上級", "source": "https://pokeapi.co/api/v2/pokemon-species/21/"}, {"no": 22, "name": "オニドリル", "hint": "昔から 住んでいる ポケモン。 少しでも 危険を 感じると 空高く 飛んで いってしまう。", "target": "昔", "reading": "むかし", "level": "中級〜上級", "source": "https://pokeapi.co/api/v2/pokemon-species/22/"}, {"no": 23, "name": "アーボ", "hint": "育つほどに どんどん 長くなる。 そして 夜中は 木の枝に グルグルと からまって 休む。", "target": "夜中", "reading": "よなか", "level": "中級", "source": "https://pokeapi.co/api/v2/pokemon-species/23/"}, {"no": 24, "name": "アーボック", "hint": "恐ろしげな お腹の 模様は 研究の 結果 ６種類ほど パターンが 確認されている。", "target": "模様", "reading": "もよう", "level": "中級〜上級", "source": "https://pokeapi.co/api/v2/pokemon-species/24/"}, {"no": 25, "name": "ピカチュウ", "hint": "おたがいの しっぽを くっつけて 電気を 流しあうのが ピカチュウ 同士の 挨拶だ。", "target": "電気", "reading": "でんき", "level": "中級", "source": "https://pokeapi.co/api/v2/pokemon-species/25/"}, {"no": 26, "name": "ライチュウ", "hint": "電気袋が 空っぽに なると しっぽを まっすぐ 立てて 空気中の 電気を 集める。", "target": "電気袋", "reading": "でんきふくろ", "level": "中級〜上級", "source": "https://pokeapi.co/api/v2/pokemon-species/26/"}, {"no": 27, "name": "サンド", "hint": "地面を 掘って 巣穴を つくる。 地中の 硬い 岩も 鋭い ツメで 砕いて 掘り進むぞ。", "target": "地面", "reading": "じめん", "level": "中級〜上級", "source": "https://pokeapi.co/api/v2/pokemon-species/27/"}, {"no": 28, "name": "サンドパン", "hint": "鋭い ツメを ひっかけて 木を 登る。 下で 待つ サンドたちに 木の実を 落とし 分け与えるのだ。", "target": "鋭", "reading": "えい", "level": "中級〜上級", "source": "https://pokeapi.co/api/v2/pokemon-species/28/"}, {"no": 29, "name": "ニドラン♀", "hint": "硬い 前歯で 木の実を 砕いて 食べる。 ツノの 先は オスより 少し 丸みを 帯びている。", "target": "前歯", "reading": "まえば", "level": "中級〜上級", "source": "https://pokeapi.co/api/v2/pokemon-species/29/"}, {"no": 30, "name": "ニドリーナ", "hint": "群れに 危険が せまると 仲間で 結束して 超音波の 大合唱を おみまいするぞ。", "target": "危険", "reading": "きけん", "level": "中級〜上級", "source": "https://pokeapi.co/api/v2/pokemon-species/30/"}, {"no": 31, "name": "ニドクイン", "hint": "背中の 棘の 隙間に 子どもを 乗せて あやす。 そのときに 毒が 出ることは けっして ないのだ。", "target": "背中", "reading": "せなか", "level": "中級〜上級", "source": "https://pokeapi.co/api/v2/pokemon-species/31/"}, {"no": 32, "name": "ニドラン♂", "hint": "小柄だが 勇ましい 性質。 仲良しの メスを 守るため 身を ていして 果敢に 戦う。", "target": "小柄", "reading": "こがら", "level": "中級〜上級", "source": "https://pokeapi.co/api/v2/pokemon-species/32/"}, {"no": 33, "name": "ニドリーノ", "hint": "神経質で 喧嘩っ早い。 体内の アドレナリンが 増えると 毒素の 濃度も 高まるぞ。", "target": "神経質", "reading": "しんけいしつ", "level": "中級〜上級", "source": "https://pokeapi.co/api/v2/pokemon-species/33/"}, {"no": 34, "name": "ニドキング", "hint": "力自慢の ポケモン。 太い 尻尾と ダイヤをも 砕く ツノを 駆使して 豪快に 戦う。", "target": "力自慢", "reading": "ちからじまん", "level": "中級〜上級", "source": "https://pokeapi.co/api/v2/pokemon-species/34/"}, {"no": 35, "name": "ピッピ", "hint": "愛くるしい しぐさと 鳴き声で かわいいと 大人気の ポケモン。 だが めったに 見つからない。", "target": "愛", "reading": "あい", "level": "中級", "source": "https://pokeapi.co/api/v2/pokemon-species/35/"}, {"no": 36, "name": "ピクシー", "hint": "１キロ先に 落ちた 針の 音も 聞こえるほど 耳が いいので ふだんは 静かな ところに いる。", "target": "先", "reading": "さき", "level": "中級", "source": "https://pokeapi.co/api/v2/pokemon-species/36/"}, {"no": 37, "name": "ロコン", "hint": "６本の しっぽは 育つごとに 毛並みが 良くなり 美しくなる。 抱きしめると ほんのり 温かい。", "target": "毛並", "reading": "けなみ", "level": "中級", "source": "https://pokeapi.co/api/v2/pokemon-species/37/"}, {"no": 38, "name": "キュウコン", "hint": "頭が良くて 執念深い。 ふざけて しっぽを つかむと １０００年 たたられるという。", "target": "執念深", "reading": "しゅうねんしん", "level": "中級", "source": "https://pokeapi.co/api/v2/pokemon-species/38/"}, {"no": 39, "name": "プリン", "hint": "声の 波長を 自在に 変えて 聞くと 絶対に 眠くなる 不思議な メロディーを 歌う。", "target": "波長", "reading": "はちょう", "level": "中級〜上級", "source": "https://pokeapi.co/api/v2/pokemon-species/39/"}, {"no": 40, "name": "プクリン", "hint": "きめ細やかな 体毛が 自慢。 とくに 額の 巻き毛は 天にも 昇る 極上の 手触り。", "target": "体毛", "reading": "たいもう", "level": "中級〜上級", "source": "https://pokeapi.co/api/v2/pokemon-species/40/"}, {"no": 41, "name": "ズバット", "hint": "陽の 当たらない 洞窟に 棲む。 朝になると 仲間で 集まり 体を 温めあいながら 寝る。", "target": "洞窟", "reading": "どうくつ", "level": "中級〜上級", "source": "https://pokeapi.co/api/v2/pokemon-species/41/"}, {"no": 42, "name": "ゴルバット", "hint": "小さな 脚で 器用に 歩く。 寝ている 獲物に 忍びより キバを 突きたて 血を すするのだ。", "target": "器用", "reading": "きよう", "level": "中級〜上級", "source": "https://pokeapi.co/api/v2/pokemon-species/42/"}, {"no": 43, "name": "ナゾノクサ", "hint": "昼間は 太陽を 避けるため 冷たい 地面に もぐっている。 月の光を 浴びて 育つ。", "target": "昼間", "reading": "ひるま", "level": "中級〜上級", "source": "https://pokeapi.co/api/v2/pokemon-species/43/"}, {"no": 44, "name": "クサイハナ", "hint": "よだれのように 見える 甘い蜜。 とても ねばねば しており 触れると いつまでも まとわりつく。", "target": "甘", "reading": "かん", "level": "初級〜中級", "source": "https://pokeapi.co/api/v2/pokemon-species/44/"}, {"no": 45, "name": "ラフレシア", "hint": "花びらが 大きいほど たくさん 花粉を 出すが 頭が 重たくて 疲れてしまうという。", "target": "花粉", "reading": "かふん", "level": "中級", "source": "https://pokeapi.co/api/v2/pokemon-species/45/"}, {"no": 46, "name": "パラス", "hint": "穴を掘り 木の根っこ から 栄養を 摂るが ほとんどは 背中の キノコに 奪われる。", "target": "穴", "reading": "あな", "level": "中級〜上級", "source": "https://pokeapi.co/api/v2/pokemon-species/46/"}, {"no": 47, "name": "パラセクト", "hint": "ずっと エキスを 吸い続けられ もはや ムシではなく 背中の キノコが 考えているようだ。", "target": "背中", "reading": "せなか", "level": "初級〜中級", "source": "https://pokeapi.co/api/v2/pokemon-species/47/"}, {"no": 48, "name": "コンパン", "hint": "レーダーになる 大きな 目は 明るいところでは 小さな 目が 集まって できているのが わかる。", "target": "目", "reading": "め", "level": "中級", "source": "https://pokeapi.co/api/v2/pokemon-species/48/"}, {"no": 49, "name": "モルフォン", "hint": "ハネの りん粉は 体につくと なかなか 取れない。しかも そこから 毒の 成分が 染み込んでくる。", "target": "粉", "reading": "こな", "level": "中級", "source": "https://pokeapi.co/api/v2/pokemon-species/49/"}, {"no": 50, "name": "ディグダ", "hint": "地中の 浅いところを 移動。 掘り進んだあとは 地面が 盛り上がっているので すぐわかる。", "target": "地中", "reading": "ちちゅう", "level": "中級〜上級", "source": "https://pokeapi.co/api/v2/pokemon-species/50/"}, {"no": 51, "name": "ダグトリオ", "hint": "地下１００キロまで 掘り進む。 パワーを秘めた 三つ子の ディグダ。 地面の下は だれも 知らない。", "target": "地下", "reading": "ちか", "level": "中級〜上級", "source": "https://pokeapi.co/api/v2/pokemon-species/51/"}, {"no": 52, "name": "ニャース", "hint": "額の 小判が 汚れないよう まめに 顔を 洗う。 ガラルの ニャースとは 仲が 悪い。", "target": "小判", "reading": "こばん", "level": "中級", "source": "https://pokeapi.co/api/v2/pokemon-species/52/"}, {"no": 53, "name": "ペルシアン", "hint": "優雅で 上品な 身のこなし。 野蛮な ニャイキングとは そりが あわず お互いを 見下している。", "target": "優雅", "reading": "ゆうが", "level": "中級〜上級", "source": "https://pokeapi.co/api/v2/pokemon-species/53/"}, {"no": 54, "name": "コダック", "hint": "ストレスが 溜まると 頭痛が エスカレート。 強力な 念力で まわりを 圧倒する。", "target": "頭痛", "reading": "ずつう", "level": "中級〜上級", "source": "https://pokeapi.co/api/v2/pokemon-species/54/"}, {"no": 55, "name": "ゴルダック", "hint": "川を 汚した 人間を 水中に 引き込み 連れ去る 昔話が 残されている。", "target": "人間", "reading": "にんげん", "level": "中級〜上級", "source": "https://pokeapi.co/api/v2/pokemon-species/55/"}, {"no": 56, "name": "マンキー", "hint": "身軽で 木の上で 生活する。 ふとしたことで 機嫌が 悪くなり まわりに いるものに 飛びかかる。", "target": "身軽", "reading": "みがる", "level": "中級〜上級", "source": "https://pokeapi.co/api/v2/pokemon-species/56/"}, {"no": 57, "name": "オコリザル", "hint": "まわりに 誰も いないときだけは 怒るのを やめている。しかし それを見るのは 難しい。", "target": "誰", "reading": "だれ", "level": "初級〜中級", "source": "https://pokeapi.co/api/v2/pokemon-species/57/"}, {"no": 58, "name": "ガーディ", "hint": "忠実な 性格で 親の トレーナーを 守るため 必死に 相手に 吠えかかる。", "target": "忠実", "reading": "ちゅうじつ", "level": "中級〜上級", "source": "https://pokeapi.co/api/v2/pokemon-species/58/"}, {"no": 59, "name": "ウインディ", "hint": "昔から 多くの 人を 虜にした 美しい ポケモン。 飛ぶように 軽やかに 走る。", "target": "昔", "reading": "むかし", "level": "中級", "source": "https://pokeapi.co/api/v2/pokemon-species/59/"}, {"no": 60, "name": "ニョロモ", "hint": "流れが 速い 川では ぶ厚い 唇を 吸盤のように 岩に くっつけて しがみつく。", "target": "流", "reading": "りゅう", "level": "中級", "source": "https://pokeapi.co/api/v2/pokemon-species/60/"}, {"no": 61, "name": "ニョロゾ", "hint": "ぬめぬめとした 粘液状の 汗を かく。 敵に 捕まっても ぬるりと すり抜け 逃げるのだ。", "target": "粘液状", "reading": "ねんえきじょう", "level": "中級", "source": "https://pokeapi.co/api/v2/pokemon-species/61/"}, {"no": 62, "name": "ニョロボン", "hint": "泳ぎ だけでなく 格闘技も 得意。 鍛えあげた 腕から 豪快な パンチを 繰りだす。", "target": "格闘技", "reading": "かくとうぎ", "level": "中級〜上級", "source": "https://pokeapi.co/api/v2/pokemon-species/62/"}, {"no": 63, "name": "ケーシィ", "hint": "眠ったまま テレポート できる。 眠りが 深いほど 離れた 場所に 移動する という。", "target": "眠", "reading": "みん", "level": "中級", "source": "https://pokeapi.co/api/v2/pokemon-species/63/"}, {"no": 64, "name": "ユンゲラー", "hint": "念力の 威力は 絶大。 進化に 備えて 額の 星に サイコパワーを 蓄えている。", "target": "念力", "reading": "ねんりき", "level": "中級〜上級", "source": "https://pokeapi.co/api/v2/pokemon-species/64/"}, {"no": 65, "name": "フーディン", "hint": "強力な 超能力を 操る。 両手の スプーンは その 力で 作りだしたという。", "target": "超能力", "reading": "ちょうのうりょく", "level": "中級〜上級", "source": "https://pokeapi.co/api/v2/pokemon-species/65/"}, {"no": 66, "name": "ワンリキー", "hint": "いつも パワフル。 体力が 有り余っているので 暇つぶしに 岩を持ち上げ さらに 強くなる。", "target": "体力", "reading": "たいりょく", "level": "中級〜上級", "source": "https://pokeapi.co/api/v2/pokemon-species/66/"}, {"no": 67, "name": "ゴーリキー", "hint": "疲れることのない 強靭な 肉体を もつ。 重い 荷物の 運搬などの 仕事を 手伝う。", "target": "強靭", "reading": "きょうじん", "level": "中級〜上級", "source": "https://pokeapi.co/api/v2/pokemon-species/67/"}, {"no": 68, "name": "カイリキー", "hint": "４本の 腕は 考えるより 早く 反射的に 動き 何発もの パンチを 繰りだせる。", "target": "本", "reading": "ほん", "level": "中級〜上級", "source": "https://pokeapi.co/api/v2/pokemon-species/68/"}, {"no": 69, "name": "マダツボミ", "hint": "温度が 高く 湿度の ある ところを 好む。ツルを 使って 小さなムシを 捕らえて 食べる。", "target": "温度", "reading": "おんど", "level": "中級〜上級", "source": "https://pokeapi.co/api/v2/pokemon-species/69/"}, {"no": 70, "name": "ウツドン", "hint": "お腹が 減ると 手あたり次第に 動くものを 飲みこんでは 溶解液で とどめを さす。", "target": "腹", "reading": "はら", "level": "中級〜上級", "source": "https://pokeapi.co/api/v2/pokemon-species/70/"}, {"no": 71, "name": "ウツボット", "hint": "ミツの 香りで 獲物を 誘う。 口の中に 入れたものは １日で ホネまで 溶かしてしまうという。", "target": "獲物", "reading": "えもの", "level": "中級〜上級", "source": "https://pokeapi.co/api/v2/pokemon-species/71/"}, {"no": 72, "name": "メノクラゲ", "hint": "ほとんどが 水分で できている。 体は 海の中では 水と 同化して とても 見えづらいのだ。", "target": "水分", "reading": "すいぶん", "level": "中級〜上級", "source": "https://pokeapi.co/api/v2/pokemon-species/72/"}, {"no": 73, "name": "ドククラゲ", "hint": "８０本の 触手は 伸び縮み 自由。 網のように 広げて 獲物を 捕らえ 毒バリを 刺す。", "target": "触手", "reading": "しょくしゅ", "level": "中級〜上級", "source": "https://pokeapi.co/api/v2/pokemon-species/73/"}, {"no": 74, "name": "イシツブテ", "hint": "山道 などに 多く 生息。 気づかずに 踏みつけると 怒りだすので 要注意だ。", "target": "山道", "reading": "やまみち", "level": "中級〜上級", "source": "https://pokeapi.co/api/v2/pokemon-species/74/"}, {"no": 75, "name": "ゴローン", "hint": "山道を よく 転がっている。 通り道に なにが あろうと 一切 気に していない。", "target": "山道", "reading": "やまみち", "level": "中級", "source": "https://pokeapi.co/api/v2/pokemon-species/75/"}, {"no": 76, "name": "ゴローニャ", "hint": "脱皮 したてのときは 全体が 白っぽく 柔らかいが すぐに 空気に ふれて 硬くなる。", "target": "脱皮", "reading": "だっぴ", "level": "中級〜上級", "source": "https://pokeapi.co/api/v2/pokemon-species/76/"}, {"no": 77, "name": "ポニータ", "hint": "ポニータに 認められると 燃える たてがみに 触っても 不思議と 熱くなくなるのだ。", "target": "認", "reading": "にん", "level": "中級", "source": "https://pokeapi.co/api/v2/pokemon-species/77/"}, {"no": 78, "name": "ギャロップ", "hint": "いちばん 脚が 速い ものが リーダー。 群れが 行く 場所や 走る 速度を 決めている。", "target": "脚", "reading": "あし", "level": "中級〜上級", "source": "https://pokeapi.co/api/v2/pokemon-species/78/"}, {"no": 79, "name": "ヤドン", "hint": "しっぽを 水に 浸すと 甘味が にじみ出るので それを エサに ポケモンを おびき寄せ 釣りあげる。", "target": "甘味", "reading": "あまみ", "level": "中級", "source": "https://pokeapi.co/api/v2/pokemon-species/79/"}, {"no": 80, "name": "ヤドラン", "hint": "シェルダーに 噛まれた ショックで 二足歩行になった。 シェルダーが 離れると ヤドンに 戻るらしい。", "target": "二足歩行", "reading": "にそくほこう", "level": "中級", "source": "https://pokeapi.co/api/v2/pokemon-species/80/"}, {"no": 81, "name": "コイル", "hint": "電気を 食って 生きている。 左右の ユニットから 電磁波を 放射しながら 空を 飛ぶ。", "target": "電気", "reading": "でんき", "level": "中級〜上級", "source": "https://pokeapi.co/api/v2/pokemon-species/81/"}, {"no": 82, "name": "レアコイル", "hint": "強い 磁力を たえず 放つ。 レアコイルが 近づくと 大抵の コンピュータは 異常を きたす。", "target": "磁力", "reading": "じりょく", "level": "中級〜上級", "source": "https://pokeapi.co/api/v2/pokemon-species/82/"}, {"no": 83, "name": "カモネギ", "hint": "植物の 茎で 戦う。 茎の 振り方には いくつかの 流派の ようなものが ある。", "target": "植物", "reading": "しょくぶつ", "level": "中級〜上級", "source": "https://pokeapi.co/api/v2/pokemon-species/83/"}, {"no": 84, "name": "ドードー", "hint": "羽は 短く 空を飛ぶのは 苦手だが その代わり 発達した 足で 速く 駆けることができる。", "target": "羽", "reading": "はね", "level": "中級〜上級", "source": "https://pokeapi.co/api/v2/pokemon-species/84/"}, {"no": 85, "name": "ドードリオ", "hint": "ドードーの どちらかの 頭が 分裂した 変種。草原を 時速 ６０キロで 走っていく。", "target": "分裂", "reading": "ぶんれつ", "level": "中級〜上級", "source": "https://pokeapi.co/api/v2/pokemon-species/85/"}, {"no": 86, "name": "パウワウ", "hint": "凍るほど 寒いところが 好き。 氷点下 １０度 くらいで 気持ちよく 泳いでいる。", "target": "凍", "reading": "とう", "level": "中級〜上級", "source": "https://pokeapi.co/api/v2/pokemon-species/86/"}, {"no": 87, "name": "ジュゴン", "hint": "全身 雪のように 真っ白。 寒さに強く 氷が 浮かぶ 海も 元気よく 泳ぎまわる。", "target": "全身", "reading": "ぜんしん", "level": "中級〜上級", "source": "https://pokeapi.co/api/v2/pokemon-species/87/"}, {"no": 88, "name": "ベトベター", "hint": "ヘドロが 固まって 生まれた。 臭くて さわることが できないし 通った跡には 草も 生えない。", "target": "固", "reading": "こ", "level": "中級", "source": "https://pokeapi.co/api/v2/pokemon-species/88/"}, {"no": 89, "name": "ベトベトン", "hint": "とっても 臭い！ 気絶するほど 強烈だが ベトベトンは 鼻が 退化して 臭いを 感じない。", "target": "気絶", "reading": "きぜつ", "level": "中級〜上級", "source": "https://pokeapi.co/api/v2/pokemon-species/89/"}, {"no": 90, "name": "シェルダー", "hint": "硬い 殻は どんな 攻撃も 跳ねかえす。 開いたときに 中を 攻撃されると 弱い。", "target": "攻撃", "reading": "こうげき", "level": "中級〜上級", "source": "https://pokeapi.co/api/v2/pokemon-species/90/"}, {"no": 91, "name": "パルシェン", "hint": "いちど 殻を 閉じてしまうと どんな 怪力の 持ち主でも 開けることは 不可能だ。", "target": "怪力", "reading": "かいりき", "level": "中級〜上級", "source": "https://pokeapi.co/api/v2/pokemon-species/91/"}, {"no": 92, "name": "ゴース", "hint": "薄い ガスのような 体で どこにでも 忍びこむが 風が 吹くと 吹きとばされる。", "target": "薄", "reading": "はく", "level": "中級", "source": "https://pokeapi.co/api/v2/pokemon-species/92/"}, {"no": 93, "name": "ゴースト", "hint": "暗闇で だれもいないのに 見られているような 気がしたら そこに ゴーストが いるのだ。", "target": "暗闇", "reading": "くらやみ", "level": "初級〜中級", "source": "https://pokeapi.co/api/v2/pokemon-species/93/"}, {"no": 94, "name": "ゲンガー", "hint": "山で 遭難したとき 命を 奪いに 暗闇から 現れることが あるという。", "target": "遭難", "reading": "そうなん", "level": "中級", "source": "https://pokeapi.co/api/v2/pokemon-species/94/"}, {"no": 95, "name": "イワーク", "hint": "大きく 丈夫な 体を くねらせ よじらせ 時速８０キロで 地面を 勢いよく 掘り進む。", "target": "丈夫", "reading": "じょうぶ", "level": "中級〜上級", "source": "https://pokeapi.co/api/v2/pokemon-species/95/"}, {"no": 96, "name": "スリープ", "hint": "いつも 一緒に 眠ってみると ときどき 昔 食べたユメを 見せてくれる 夜がある。", "target": "一緒", "reading": "いっしょ", "level": "中級", "source": "https://pokeapi.co/api/v2/pokemon-species/96/"}, {"no": 97, "name": "スリーパー", "hint": "うっかり 出会ったときは 目を そらさないと 危険。手に もった 振り子で 眠らされてしまう。", "target": "出会", "reading": "であい", "level": "中級〜上級", "source": "https://pokeapi.co/api/v2/pokemon-species/97/"}, {"no": 98, "name": "クラブ", "hint": "危険がせまると 口から 吐きだす 泡で 全身を 包んで 体を 大きく みせようとする。", "target": "危険", "reading": "きけん", "level": "中級〜上級", "source": "https://pokeapi.co/api/v2/pokemon-species/98/"}, {"no": 99, "name": "キングラー", "hint": "破壊力 抜群の 大きな ハサミだが 重すぎるので 戦わないときは じゃまになる。", "target": "破壊力", "reading": "はかいりょく", "level": "中級", "source": "https://pokeapi.co/api/v2/pokemon-species/99/"}, {"no": 100, "name": "ビリリダマ", "hint": "モンスターボールに 似ているのは 保護色の ためだと 言われるが 意外と 簡単に 自爆する。", "target": "保護色", "reading": "ほごいろ", "level": "中級〜上級", "source": "https://pokeapi.co/api/v2/pokemon-species/100/"}];
+    const state = { current:null, askedSet:new Set(), asked:0, correct:0 };
+
+    const els = {
+      noPill: document.getElementById('noPill'),
+      levelPill: document.getElementById('levelPill'),
+      namePill: document.getElementById('namePill'),
+      hint: document.getElementById('hint'),
+      targetKanji: document.getElementById('targetKanji'),
+      answerInput: document.getElementById('answerInput'),
+      checkBtn: document.getElementById('checkBtn'),
+      nextBtn: document.getElementById('nextBtn'),
+      showBtn: document.getElementById('showBtn'),
+      result: document.getElementById('result'),
+      answerInfo: document.getElementById('answerInfo'),
+      sourceLink: document.getElementById('sourceLink'),
+      askedCount: document.getElementById('askedCount'),
+      correctCount: document.getElementById('correctCount'),
+      rate: document.getElementById('rate'),
+      remaining: document.getElementById('remaining')
+    };
+
+    function normalizeYomi(s) {
+      return (s || '').trim().replace(/\s+/g, '').replace(/[ァ-ヶ]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0x60));
+    }
+
+    function shufflePick() {
+      const unseen = quizData.filter(x => !state.askedSet.has(x.no));
+      const pool = unseen.length ? unseen : quizData;
+      return pool[Math.floor(Math.random() * pool.length)];
+    }
+
+    function updateStats() {
+      els.askedCount.textContent = state.asked;
+      els.correctCount.textContent = state.correct;
+      els.remaining.textContent = Math.max(quizData.length - state.askedSet.size, 0);
+      const rate = state.asked ? Math.round((state.correct / state.asked) * 100) : 0;
+      els.rate.textContent = `${rate}%`;
+    }
+
+    function renderQuestion(item) {
+      state.current = item;
+      if (!state.askedSet.has(item.no)) {
+        state.askedSet.add(item.no);
+        state.asked += 1;
+      }
+      els.noPill.textContent = `No. ${item.no}`;
+      els.levelPill.textContent = `難易度: ${item.level}`;
+      els.namePill.textContent = `ポケモン名: ${item.name}`;
+      els.hint.textContent = item.hint;
+      els.targetKanji.textContent = item.target || '—';
+      els.result.className = 'result';
+      els.result.textContent = 'ここに結果が表示されます。';
+      els.answerInfo.textContent = '';
+      els.answerInput.value = '';
+      els.sourceLink.href = item.source;
+      els.sourceLink.textContent = item.source;
+      updateStats();
+      els.answerInput.focus();
+    }
+
+    function checkAnswer() {
+      const user = normalizeYomi(els.answerInput.value);
+      const ans = normalizeYomi(state.current.reading);
+      if (!user) {
+        els.result.className = 'result';
+        els.result.textContent = 'よみを ひらがなで入力してください。';
+        return;
+      }
+      if (user === ans) {
+        state.correct += 1;
+        els.result.className = 'result good';
+        els.result.textContent = '正解です！';
+      } else {
+        els.result.className = 'result bad';
+        els.result.textContent = 'ちがいます。';
+      }
+      els.answerInfo.textContent = `答え: ${state.current.target}（${state.current.reading}） / ポケモン名: ${state.current.name}`;
+      updateStats();
+    }
+
+    function showAnswer() {
+      els.result.className = 'result';
+      els.result.textContent = '答えを表示しました。';
+      els.answerInfo.textContent = `答え: ${state.current.target}（${state.current.reading}） / ポケモン名: ${state.current.name}`;
+    }
+
+    els.checkBtn.addEventListener('click', checkAnswer);
+    els.nextBtn.addEventListener('click', () => renderQuestion(shufflePick()));
+    els.showBtn.addEventListener('click', showAnswer);
+    els.answerInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') checkAnswer(); });
+
+    renderQuestion(shufflePick());
+  </script>
+</body>
+</html>
