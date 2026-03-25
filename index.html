@@ -25,6 +25,7 @@
     .label{font-size:13px;color:var(--sub);margin-bottom:6px;font-weight:700;letter-spacing:.02em}
     .hint{font-size:22px;line-height:1.8}
     .target{font-size:36px;font-weight:800;letter-spacing:.08em;color:#163b64;background:#edf5ff;border:1px solid #d7e6fa;border-radius:14px;padding:16px;text-align:center;margin-bottom:14px}
+    .name-display{font-size:32px;font-weight:900;letter-spacing:.06em;color:#163b64;background:linear-gradient(135deg,#fff7cc,#ffe27a);border:2px solid #f2c94c;border-radius:16px;padding:16px 18px;text-align:center;margin:0 0 14px;box-shadow:0 8px 20px rgba(242,201,76,.18)}
     .prompt{font-size:18px;line-height:1.7;margin:0 0 14px}
     .answer-box{display:flex;gap:10px;flex-wrap:wrap}
     input[type=text]{flex:1 1 260px;padding:14px 16px;border-radius:12px;border:1px solid #c7d6ea;font-size:18px}
@@ -48,7 +49,7 @@
   <div class="wrap">
     <section class="hero">
       <h1>ポケモン漢字クイズ</h1>
-      <p class="sub">前回のHTMLは「ポケモン名当て」になっていました。これは修正版で、<strong>ヒント文に出てくる漢字語の読み</strong>を答える本来の漢字クイズです。</p>
+      <p class="sub"><strong>ヒント文に出てくる漢字語の読み</strong>を答える漢字クイズです。</p>
     </section>
 
     <div class="grid">
@@ -56,8 +57,9 @@
         <div class="meta">
           <span class="pill" id="noPill">No. -</span>
           <span class="pill" id="levelPill">難易度: -</span>
-          <span class="pill" id="namePill">ポケモン名: -</span>
         </div>
+
+        <div class="name-display" id="namePill">ポケモン名: -</div>
 
         <div class="question">
           <div class="label">ヒント文</div>
